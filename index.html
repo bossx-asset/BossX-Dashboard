@@ -1,1 +1,217 @@
 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard BossX - Fery Muliawan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #5D3A9B, #8E44AD);
+      color: #FFD700;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .header {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      border-bottom: 2px solid #FFD700;
+    }
+
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .header .sub {
+      font-size: 1rem;
+      opacity: 0.9;
+      margin-top: 0.5rem;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 1rem;
+      gap: 1.2rem;
+      justify-content: center;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid #FFD700;
+      border-radius: 14px;
+      padding: 1.5rem;
+      width: 290px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+      color: #FFD700;
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+    }
+
+    .card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card p {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin: 1rem 0;
+    }
+
+    .btn {
+      background: #FFD700;
+      color: #000;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #FFC107;
+      transform: scale(1.02);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th {
+      background: #FFD700;
+      color: #000;
+      padding: 6px;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    td {
+      padding: 6px;
+      border-bottom: 1px dashed #FFD700;
+      font-size: 0.9rem;
+    }
+
+    .no-data {
+      text-align: center;
+      color: #aaa;
+      font-style: italic;
+      padding: 12px;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: rgba(255, 215, 0, 0.7);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header dengan Profil -->
+  <div class="header">
+    <h1>⚡ Dashboard BossX</h1>
+    <div class="sub">
+      <strong>Fery Muliawan</strong> • ID Masternode: 805
+    </div>
+  </div>
+
+  <!-- Konten Utama -->
+  <div class="container">
+    <div class="card">
+      <h3>🚀 Masternodes Running</h3>
+      <p>0 BossX</p>
+      <button class="btn">Aktifkan Node</button>
+    </div>
+
+    <div class="card">
+      <h3>💎 Reward Hari Ini</h3>
+      <p>0 BossX</p>
+      <small>Auto-claim dalam: <span id="timer">60</span> detik</small>
+    </div>
+
+    <div class="card">
+      <h3>🛒 Beli Masternode</h3>
+      <p>1000 BossX</p>
+      <input 
+        type="number" 
+        placeholder="Jumlah BossX" 
+        style="width: 100%; padding: 10px; border: 1px solid #FFD700; border-radius: 6px; background: rgba(0,0,0,0.2); color: white; margin: 10px 0;"
+      >
+      <button class="btn">Beli & Aktifkan</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 Riwayat Auto-Claim</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Jumlah</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="2" class="no-data">Belum ada data</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>💳 Transaksi Wallet</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Jumlah</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="3" class="no-data">Belum ada transaksi</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    © 2025 Fery Muliawan • Public Dashboard BossX
+  </div>
+
+  <!-- Timer Auto-Claim -->
+  <script>
+    let timeLeft = 60;
+    const timerEl = document.getElementById('timer');
+    setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= 0) timeLeft = 60;
+      timerEl.textContent = timeLeft;
+    }, 1000);
+  </script>
+
+</body>
+</html>
