@@ -127,6 +127,16 @@
       color: rgba(255, 215, 0, 0.7);
       font-size: 0.9rem;
     }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #FFD700;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.2);
+      color: white;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -152,45 +162,39 @@
   <div class="container">
     <div class="card">
       <h3>🚀 Masternodes Running</h3>
-      <p>0 BossX</p>
-      <button class="btn">Aktifkan Node</button>
+      <p id="node-count">0 BossX</p>
+      <button class="btn" id="activate-btn">Aktifkan Node</button>
     </div>
 
     <div class="card">
       <h3>💎 Reward Hari Ini</h3>
-      <p>0 BossX</p>
+      <p id="reward-amount">0 BossX</p>
       <small>Auto-claim dalam: <span id="timer">60</span> detik</small>
     </div>
 
     <div class="card">
       <h3>🛒 Beli Masternode</h3>
       <p>1000 BossX</p>
-      <input 
-        type="number" 
-        placeholder="Jumlah BossX" 
-        style="width: 100%; padding: 10px; border: 1px solid #FFD700; border-radius: 6px; background: rgba(0,0,0,0.2); color: white; margin: 10px 0;"
-      >
-      <button class="btn">Beli & Aktifkan</button>
+      <input type="number" id="buy-input" placeholder="Masukkan jumlah BossX">
+      <button class="btn" id="buy-btn">Beli & Aktifkan</button>
     </div>
 
     <div class="card">
       <h3>📋 Riwayat Auto-Claim</h3>
-      <table>
+      <table id="claim-table">
         <thead>
           <tr>
             <th>Tanggal</th>
             <th>Jumlah</th>
           </tr>
         </thead>
-        <tbody>
-          <tr><td colspan="2" class="no-data">Belum ada data</td></tr>
-        </tbody>
+        <tbody></tbody>
       </table>
     </div>
 
     <div class="card">
       <h3>💳 Transaksi Wallet</h3>
-      <table>
+      <table id="wallet-table">
         <thead>
           <tr>
             <th>Waktu</th>
@@ -198,9 +202,7 @@
             <th>Status</th>
           </tr>
         </thead>
-        <tbody>
-          <tr><td colspan="3" class="no-data">Belum ada transaksi</td></tr>
-        </tbody>
+        <tbody></tbody>
       </table>
     </div>
   </div>
@@ -210,15 +212,126 @@
     © 2025 Fery Muliawan • Public Dashboard BossX
   </div>
 
-  <!-- Timer Auto-Claim -->
+  <!-- Script Utama -->
   <script>
+    // Format waktu: 6/9/2025 07:45:32
+    function formatTime() {
+      const now = new Date();
+      return `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+    }
+
+    // Fungsi simpan data ke localStorage
+    function saveData(key, data) {
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+
+    // Fungsi ambil data dari localStorage
+    function loadData(key) {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    }
+
+    // Tambah transaksi
+    function addTransaction(amount) {
+      const table = document.getElementById('wallet-table');
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${formatTime()}</td>
+        <td>${amount} BossX</td>
+        <td><span style="color: #4CAF50;">Berhasil</span></td>
+      `;
+      table.appendChild(row);
+
+      // Simpan ke localStorage
+      const transactions = loadData('transactions');
+      transactions.push({ time: formatTime(), amount, status: 'Berhasil' });
+      saveData('transactions', transactions);
+    }
+
+    // Muat transaksi saat halaman dibuka
+    function loadTransactions() {
+      const transactions = loadData('transactions');
+      const table = document.getElementById('wallet-table').querySelector('tbody');
+      if (table && transactions.length > 0) {
+        table.innerHTML = '';
+        transactions.forEach(t => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${t.time}</td>
+            <td>${t.amount} BossX</td>
+            <td><span style="color: #4CAF50;">${t.status}</span></td>
+          `;
+          table.appendChild(row);
+        });
+      } else if (table) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="3" class="no-data">Belum ada transaksi</td>`;
+        table.appendChild(row);
+      }
+    }
+
+    // Timer auto-claim
     let timeLeft = 60;
     const timerEl = document.getElementById('timer');
     setInterval(() => {
       timeLeft--;
-      if (timeLeft <= 0) timeLeft = 60;
+      if (timeLeft <= 0) {
+        timeLeft = 60;
+        const reward = 0.5; // Simulasi reward
+        document.getElementById('reward-amount').textContent = reward + " BossX";
+        
+        // Catat auto-claim
+        const claimTable = document.getElementById('claim-table').querySelector('tbody');
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${formatTime()}</td><td>${reward} BossX</td>`;
+        claimTable.appendChild(row);
+
+        // Simpan ke localStorage
+        const claims = loadData('claims');
+        claims.push({ time: formatTime(), amount: reward });
+        saveData('claims', claims);
+      }
       timerEl.textContent = timeLeft;
     }, 1000);
+
+    // Muat riwayat auto-claim
+    function loadClaims() {
+      const claims = loadData('claims');
+      const table = document.getElementById('claim-table').querySelector('tbody');
+      if (table && claims.length > 0) {
+        table.innerHTML = '';
+        claims.forEach(c => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${c.time}</td><td>${c.amount} BossX</td>`;
+          table.appendChild(row);
+        });
+      } else if (table) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="2" class="no-data">Belum ada data</td>`;
+        table.appendChild(row);
+      }
+    }
+
+    // Event Listener
+    document.getElementById('buy-btn').addEventListener('click', function () {
+      const input = document.getElementById('buy-input');
+      const amount = input.value.trim();
+
+      if (!amount || isNaN(amount) || amount <= 0) {
+        alert("Masukkan jumlah BossX yang valid!");
+        return;
+      }
+
+      addTransaction(amount);
+      input.value = '';
+      alert(`Transaksi berhasil: ${amount} BossX`);
+    });
+
+    // Saat halaman selesai dimuat
+    document.addEventListener('DOMContentLoaded', function () {
+      loadTransactions();
+      loadClaims();
+    });
   </script>
 
 </body>
