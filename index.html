@@ -94,6 +94,11 @@
       transform: scale(1.02);
     }
 
+    .btn-off {
+      background: #555;
+      cursor: not-allowed;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -162,20 +167,20 @@
   <div class="container">
     <div class="card">
       <h3>🚀 Masternodes Running</h3>
-      <p id="node-count">0 BossX</p>
-      <button class="btn" id="activate-btn">Aktifkan Node</button>
+      <p id="node-count">0.00000000 BossX</p>
+      <button class="btn" id="node-toggle">ON</button>
     </div>
 
     <div class="card">
       <h3>💎 Reward Hari Ini</h3>
-      <p id="reward-amount">0 BossX</p>
+      <p id="reward-amount">0.00000000 BossX</p>
       <small>Auto-claim dalam: <span id="timer">60</span> detik</small>
     </div>
 
     <div class="card">
       <h3>🛒 Beli Masternode</h3>
       <p>1000 BossX</p>
-      <input type="number" id="buy-input" placeholder="Masukkan jumlah BossX">
+      <input type="number" id="buy-input" placeholder="Jumlah BossX">
       <button class="btn" id="buy-btn">Beli & Aktifkan</button>
     </div>
 
@@ -214,124 +219,165 @@
 
   <!-- Script Utama -->
   <script>
-    // Format waktu: 6/9/2025 07:45:32
+    // Konfigurasi
+    const REWARD_PER_NODE_PER_SECOND = 0.00000001; // 1e-8
+    const NODE_PRICE = 1000;
+    const ACTIVE_DURATION = 24 * 60 * 60 * 1000; // 24 jam dalam ms
+
+    // DOM Elements
+    const nodeCountEl = document.getElementById('node-count');
+    const rewardAmountEl = document.getElementById('reward-amount');
+    const timerEl = document.getElementById('timer');
+    const nodeToggle = document.getElementById('node-toggle');
+    const buyBtn = document.getElementById('buy-btn');
+    const buyInput = document.getElementById('buy-input');
+
+    // Load data
+    function loadData(key, defaultValue) {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : defaultValue;
+    }
+
+    function saveData(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    // State
+    let nodeCount = loadData('nodeCount', 0);
+    let rewardAmount = loadData('rewardAmount', 0);
+    let nodeActive = loadData('nodeActive', false);
+    let nodeStartTime = loadData('nodeStartTime', null);
+    let lastClaimTime = loadData('lastClaimTime', Date.now());
+
+    // Update UI
+    function updateUI() {
+      nodeCountEl.textContent = nodeCount.toFixed(8) + " BossX";
+      rewardAmountEl.textContent = rewardAmount.toFixed(8) + " BossX";
+      nodeToggle.textContent = nodeActive ? "ON" : "OFF";
+      nodeToggle.className = nodeActive ? "btn" : "btn btn-off";
+    }
+
+    // Cek status node (24 jam)
+    function checkNodeStatus() {
+      if (nodeActive && nodeStartTime) {
+        const elapsed = Date.now() - nodeStartTime;
+        if (elapsed >= ACTIVE_DURATION) {
+          nodeActive = false;
+          saveData('nodeActive', false);
+          saveData('nodeStartTime', null);
+        }
+      }
+    }
+
+    // Timer utama (60 detik)
+    let timeLeft = 60;
+    function startTimer() {
+      setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          timeLeft = 60;
+          if (nodeActive && nodeCount > 0) {
+            const earned = nodeCount * REWARD_PER_NODE_PER_SECOND * 60;
+            rewardAmount += earned;
+            saveData('rewardAmount', rewardAmount);
+
+            // Tambah ke riwayat claim
+            const claimTable = document.getElementById('claim-table').querySelector('tbody');
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${formatTime()}</td><td>${earned.toFixed(8)} BossX</td>`;
+            claimTable.appendChild(row);
+
+            const claims = loadData('claims', []);
+            claims.push({ time: formatTime(), amount: earned });
+            saveData('claims', claims);
+          }
+        }
+      }, 1000);
+    }
+
+    // Format waktu
     function formatTime() {
       const now = new Date();
-      return `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+      return `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}`;
     }
 
-    // Fungsi simpan data ke localStorage
-    function saveData(key, data) {
-      localStorage.setItem(key, JSON.stringify(data));
-    }
+    // Muat riwayat
+    function loadHistory() {
+      const claims = loadData('claims', []);
+      const transactions = loadData('transactions', []);
+      const claimTable = document.getElementById('claim-table').querySelector('tbody');
+      const walletTable = document.getElementById('wallet-table').querySelector('tbody');
 
-    // Fungsi ambil data dari localStorage
-    function loadData(key) {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : [];
-    }
-
-    // Tambah transaksi
-    function addTransaction(amount) {
-      const table = document.getElementById('wallet-table');
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${formatTime()}</td>
-        <td>${amount} BossX</td>
-        <td><span style="color: #4CAF50;">Berhasil</span></td>
-      `;
-      table.appendChild(row);
-
-      // Simpan ke localStorage
-      const transactions = loadData('transactions');
-      transactions.push({ time: formatTime(), amount, status: 'Berhasil' });
-      saveData('transactions', transactions);
-    }
-
-    // Muat transaksi saat halaman dibuka
-    function loadTransactions() {
-      const transactions = loadData('transactions');
-      const table = document.getElementById('wallet-table').querySelector('tbody');
-      if (table && transactions.length > 0) {
-        table.innerHTML = '';
-        transactions.forEach(t => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${t.time}</td>
-            <td>${t.amount} BossX</td>
-            <td><span style="color: #4CAF50;">${t.status}</span></td>
-          `;
-          table.appendChild(row);
-        });
-      } else if (table) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="3" class="no-data">Belum ada transaksi</td>`;
-        table.appendChild(row);
-      }
-    }
-
-    // Timer auto-claim
-    let timeLeft = 60;
-    const timerEl = document.getElementById('timer');
-    setInterval(() => {
-      timeLeft--;
-      if (timeLeft <= 0) {
-        timeLeft = 60;
-        const reward = 0.5; // Simulasi reward
-        document.getElementById('reward-amount').textContent = reward + " BossX";
-        
-        // Catat auto-claim
-        const claimTable = document.getElementById('claim-table').querySelector('tbody');
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${formatTime()}</td><td>${reward} BossX</td>`;
-        claimTable.appendChild(row);
-
-        // Simpan ke localStorage
-        const claims = loadData('claims');
-        claims.push({ time: formatTime(), amount: reward });
-        saveData('claims', claims);
-      }
-      timerEl.textContent = timeLeft;
-    }, 1000);
-
-    // Muat riwayat auto-claim
-    function loadClaims() {
-      const claims = loadData('claims');
-      const table = document.getElementById('claim-table').querySelector('tbody');
-      if (table && claims.length > 0) {
-        table.innerHTML = '';
+      if (claims.length > 0) {
+        claimTable.innerHTML = '';
         claims.forEach(c => {
           const row = document.createElement('tr');
-          row.innerHTML = `<td>${c.time}</td><td>${c.amount} BossX</td>`;
-          table.appendChild(row);
+          row.innerHTML = `<td>${c.time}</td><td>${c.amount.toFixed(8)} BossX</td>`;
+          claimTable.appendChild(row);
         });
-      } else if (table) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="2" class="no-data">Belum ada data</td>`;
-        table.appendChild(row);
+      }
+
+      if (transactions.length > 0) {
+        walletTable.innerHTML = '';
+        transactions.forEach(t => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${t.time}</td><td>${t.amount} BossX</td><td><span style="color:#4CAF50;">${t.status}</span></td>`;
+          walletTable.appendChild(row);
+        });
       }
     }
 
-    // Event Listener
-    document.getElementById('buy-btn').addEventListener('click', function () {
-      const input = document.getElementById('buy-input');
-      const amount = input.value.trim();
-
-      if (!amount || isNaN(amount) || amount <= 0) {
-        alert("Masukkan jumlah BossX yang valid!");
+    // Event: Beli Node
+    buyBtn.addEventListener('click', () => {
+      const amount = parseFloat(buyInput.value);
+      if (!amount || isNaN(amount) || amount < NODE_PRICE) {
+        alert(`Minimal beli: ${NODE_PRICE} BossX`);
         return;
       }
 
-      addTransaction(amount);
-      input.value = '';
-      alert(`Transaksi berhasil: ${amount} BossX`);
+      const newNodes = amount / NODE_PRICE;
+      nodeCount += newNodes;
+
+      saveData('nodeCount', nodeCount);
+
+      // Tambah transaksi
+      const transactions = loadData('transactions', []);
+      transactions.push({ time: formatTime(), amount, status: 'Berhasil' });
+      saveData('transactions', transactions);
+
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${formatTime()}</td><td>${amount} BossX</td><td><span style="color:#4CAF50;">Berhasil</span></td>`;
+      document.getElementById('wallet-table').querySelector('tbody').appendChild(row);
+
+      buyInput.value = '';
+      updateUI();
+      alert(`Sukses: ${newNodes} Node aktif!`);
     });
 
-    // Saat halaman selesai dimuat
-    document.addEventListener('DOMContentLoaded', function () {
-      loadTransactions();
-      loadClaims();
+    // Toggle ON/OFF
+    nodeToggle.addEventListener('click', () => {
+      if (nodeToggle.textContent === "OFF") {
+        if (nodeCount > 0) {
+          nodeActive = true;
+          nodeStartTime = Date.now();
+          saveData('nodeActive', true);
+          saveData('nodeStartTime', nodeStartTime);
+          nodeToggle.textContent = "ON";
+          nodeToggle.className = "btn";
+        } else {
+          alert("Beli dulu masternode!");
+        }
+      }
     });
+
+    // Inisialisasi
+    checkNodeStatus();
+    updateUI();
+    startTimer();
+    loadHistory();
+
   </script>
 
 </body>
