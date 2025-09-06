@@ -179,11 +179,27 @@
 
     <div class="card">
       <h3>🛒 Beli Masternode</h3>
-      <p>1000 BossX</p>
-      <input type="number" id="buy-input" placeholder="Jumlah BossX">
-      <button class="btn" id="buy-btn">Beli & Aktifkan</button>
+      <p>Minimal: 50 USDT</p>
+      <input type="number" id="buy-input" placeholder="Masukkan jumlah USDT">
+      <button class="btn" id="buy-btn">Aktivasi Node</button>
     </div>
 
+    <!-- Tabel Transaksi di KIRI -->
+    <div class="card">
+      <h3>💳 Riwayat Transaksi Wallet</h3>
+      <table id="wallet-table">
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Jumlah</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Tabel Claim di KANAN -->
     <div class="card">
       <h3>📋 Riwayat Auto-Claim</h3>
       <table id="claim-table">
@@ -191,20 +207,6 @@
           <tr>
             <th>Tanggal</th>
             <th>Jumlah</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <h3>💳 Transaksi Wallet</h3>
-      <table id="wallet-table">
-        <thead>
-          <tr>
-            <th>Waktu</th>
-            <th>Jumlah</th>
-            <th>Status</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -221,8 +223,8 @@
   <script>
     // Konfigurasi
     const REWARD_PER_NODE_PER_SECOND = 0.00000001; // 1e-8
-    const NODE_PRICE = 1000;
-    const ACTIVE_DURATION = 24 * 60 * 60 * 1000; // 24 jam dalam ms
+    const MIN_USDT = 50; // Minimal 50 USDT
+    const ACTIVE_DURATION = 24 * 60 * 60 * 1000; // 24 jam
 
     // DOM Elements
     const nodeCountEl = document.getElementById('node-count');
@@ -317,29 +319,40 @@
           row.innerHTML = `<td>${c.time}</td><td>${c.amount.toFixed(8)} BossX</td>`;
           claimTable.appendChild(row);
         });
+      } else {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="2" class="no-data">Belum ada data</td>`;
+        claimTable.appendChild(row);
       }
 
       if (transactions.length > 0) {
         walletTable.innerHTML = '';
         transactions.forEach(t => {
           const row = document.createElement('tr');
-          row.innerHTML = `<td>${t.time}</td><td>${t.amount} BossX</td><td><span style="color:#4CAF50;">${t.status}</span></td>`;
+          row.innerHTML = `<td>${t.time}</td><td>${t.amount} USDT</td><td><span style="color:#4CAF50;">${t.status}</span></td>`;
           walletTable.appendChild(row);
         });
+      } else {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="3" class="no-data">Belum ada transaksi</td>`;
+        walletTable.appendChild(row);
       }
     }
 
-    // Event: Beli Node
+    // Event: Beli Node (Minimal 50 USDT)
     buyBtn.addEventListener('click', () => {
       const amount = parseFloat(buyInput.value);
-      if (!amount || isNaN(amount) || amount < NODE_PRICE) {
-        alert(`Minimal beli: ${NODE_PRICE} BossX`);
+      if (!amount || isNaN(amount)) {
+        alert("Masukkan jumlah USDT yang valid!");
+        return;
+      }
+      if (amount < MIN_USDT) {
+        alert(`Minimal 50 USDT untuk aktivasi masternode!`);
         return;
       }
 
-      const newNodes = amount / NODE_PRICE;
+      const newNodes = amount / 1000; // Asumsi 1000 BossX = 1 node
       nodeCount += newNodes;
-
       saveData('nodeCount', nodeCount);
 
       // Tambah transaksi
@@ -348,12 +361,12 @@
       saveData('transactions', transactions);
 
       const row = document.createElement('tr');
-      row.innerHTML = `<td>${formatTime()}</td><td>${amount} BossX</td><td><span style="color:#4CAF50;">Berhasil</span></td>`;
+      row.innerHTML = `<td>${formatTime()}</td><td>${amount} USDT</td><td><span style="color:#4CAF50;">Berhasil</span></td>`;
       document.getElementById('wallet-table').querySelector('tbody').appendChild(row);
 
       buyInput.value = '';
       updateUI();
-      alert(`Sukses: ${newNodes} Node aktif!`);
+      alert(`Sukses! ${newNodes.toFixed(4)} Node aktif!`);
     });
 
     // Toggle ON/OFF
@@ -377,8 +390,6 @@
     updateUI();
     startTimer();
     loadHistory();
-
   </script>
-
 </body>
 </html>
